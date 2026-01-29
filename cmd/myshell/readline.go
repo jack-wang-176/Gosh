@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bash/internal/builtins"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ type bellCompleter struct {
 	tabNum        int
 }
 
+// 初始化补全器
 var standCompleter = initExecList()
 var myCompleter = &bellCompleter{
 	standCompleter,
@@ -27,32 +29,27 @@ func (b *bellCompleter) Reset() {
 	b.tabNum = 0
 	b.currentString = ""
 }
+
 func (b *bellCompleter) Do(line []rune, pos int) (possible [][]rune, length int) {
-	// add_ -> add_dog
-	//offset = 4
 	newLine, offset := b.bellLine.Do(line, pos)
 	currentString := string(line)
-	//one match command
+
 	if len(newLine) <= 1 {
 		b.Reset()
 		if len(newLine) == 0 {
-			fmt.Printf("\x07")
+			fmt.Printf("\x07") // Beep
 		}
 		return newLine, offset
 	}
-	//above one match command
+
 	lcp := lcpMatch(newLine)
-	// lcp = dog
 	if len(lcp) > 0 {
-		// there exist the shared part
 		b.Reset()
 		return [][]rune{lcp}, offset
 	}
 	if currentString == b.currentString {
-		//two or more press tab button
 		b.tabNum++
 	} else {
-		//initialize first tab
 		b.tabNum = 1
 		b.currentString = currentString
 	}
@@ -73,12 +70,12 @@ func (b *bellCompleter) Do(line []rune, pos int) (possible [][]rune, length int)
 		fmt.Print("$ " + currentString)
 		return nil, 0
 	}
-
 }
+
 func getAllPathExec() []string {
 	pathAll := os.Getenv("PATH")
 	list := filepath.SplitList(pathAll)
-	var exec []string
+	var execList []string
 	flag := make(map[string]bool)
 	for _, dir := range list {
 		entries, err := os.ReadDir(dir)
@@ -93,42 +90,50 @@ func getAllPathExec() []string {
 			if err != nil {
 				continue
 			}
+			// 检查是否可执行 (Linux/Mac)
 			if info.Mode()&0111 != 0 {
 				name := entry.Name()
 				if !flag[name] {
-					exec = append(exec, name)
+					execList = append(execList, name)
 					flag[name] = true
 				}
 			}
 		}
 	}
-	return exec
+	return execList
 }
 
 func initExecList() *readline.PrefixCompleter {
 	var items []readline.PrefixCompleterInterface
-	command := make(map[string]bool)
+	commandMap := make(map[string]bool)
+
 	var addCod = func(name string) {
-		if !command[name] {
-			command[name] = true
+		if !commandMap[name] {
+			commandMap[name] = true
 			items = append(items, readline.PcItem(name))
 		}
 	}
-	addCod("cd")
-	addCod("exit")
-	addCod("echo")
-	addCod("type")
-	addCod("pwd")
 
+	// 1. 动态添加内建命令 (从 builtins 包读取)
+	// 这样以后你加新命令，补全自动就有了！
+	for name := range builtins.CodFunc {
+		addCod(name)
+	}
+
+	// 2. 添加环境变量 PATH 里的外部命令
+	// 注意：为了启动速度，这里可以考虑放到 goroutine 里或者懒加载
+	// 但目前保持原样即可
 	execs := getAllPathExec()
 	for _, exec := range execs {
-		if !command[exec] {
+		if !commandMap[exec] {
 			addCod(exec)
 		}
 	}
+
 	var completer = readline.NewPrefixCompleter(items...)
 	return completer
 }
+
 func lcpMatch(candidates [][]rune) []rune {
 	if len(candidates) == 0 {
 		return nil
