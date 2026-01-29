@@ -8,7 +8,7 @@ import (
 )
 
 // handlePwd 打印当前工作目录
-func handlePwd(_ []string, _ io.Reader, output io.Writer, sess *session.Session) error {
+func handlePwd(_ []string, _ io.Reader, output io.Writer, _ *session.Session) error {
 	dir, err := os.Getwd()
 	if err != nil {
 		return err

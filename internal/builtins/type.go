@@ -8,7 +8,7 @@ import (
 )
 
 // handleType 显示命令类型
-func handleType(args []string, _ io.Reader, output io.Writer, sess *session.Session) error {
+func handleType(args []string, _ io.Reader, output io.Writer, _ *session.Session) error {
 	// 但为了解耦，这里暂时保持局部定义，或者你可以把它移到包级别的变量
 	var builtins = map[string]bool{
 		"type": true, "exit": true, "echo": true, "pwd": true, "cd": true, "history": true,
