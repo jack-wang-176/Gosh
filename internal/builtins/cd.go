@@ -10,7 +10,7 @@ import (
 )
 
 // handleCd 切换目录
-func handleCd(args []string, _ io.Reader, _ io.Writer, sess *session.Session) error {
+func handleCd(args []string, _ io.Reader, _ io.Writer, _ *session.Session) error {
 	// 1. 如果没有参数，默认为跳回用户主目录
 	path := "~"
 	if len(args) > 0 {
